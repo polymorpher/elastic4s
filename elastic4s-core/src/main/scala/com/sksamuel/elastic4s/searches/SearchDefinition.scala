@@ -47,7 +47,8 @@ case class SearchDefinition(indexesTypes: IndexesAndTypes,
                             trackScores: Option[Boolean] = None,
                             terminateAfter: Option[Int] = None,
                             timeout: Option[Duration] = None,
-                            version: Option[Boolean] = None
+                            version: Option[Boolean] = None,
+                            slice: Option[(Int, Int)] = None
                            ) {
 
   /** Adds a single string query to this search
@@ -62,6 +63,7 @@ case class SearchDefinition(indexesTypes: IndexesAndTypes,
   def minScore(min: Double): SearchDefinition = copy(minScore = min.some)
 
   def types(first: String, rest: String*): SearchDefinition = types(first +: rest)
+
   def types(types: Iterable[String]): SearchDefinition =
     copy(indexesTypes = IndexesAndTypes(indexesTypes.indexes, types.toSeq))
 
@@ -71,6 +73,7 @@ case class SearchDefinition(indexesTypes: IndexesAndTypes,
   def matchAll(): SearchDefinition = query(new MatchAllQueryDefinition)
 
   def inner(first: InnerHitDefinition, rest: InnerHitDefinition*): SearchDefinition = inner(first +: rest)
+
   def inner(inners: Iterable[InnerHitDefinition]): SearchDefinition = copy(inners = inners.toSeq)
 
   def searchAfter(values: Seq[Any]): SearchDefinition = copy(searchAfter = values)
@@ -80,17 +83,22 @@ case class SearchDefinition(indexesTypes: IndexesAndTypes,
   def requestCache(requestCache: Boolean): SearchDefinition = copy(requestCache = requestCache.some)
 
   def aggs(first: AbstractAggregation, rest: AbstractAggregation*): SearchDefinition = aggs(first +: rest)
+
   def aggs(iterable: Iterable[AbstractAggregation]): SearchDefinition = aggregations(iterable)
+
   def aggregations(aggs: Iterable[AbstractAggregation]): SearchDefinition = copy(aggs = aggs.toSeq)
+
   def aggregations(first: AbstractAggregation, rest: AbstractAggregation*): SearchDefinition = aggregations(first +: rest)
 
   @deprecated("use sortBy", "5.0.0")
   def sort(sorts: SortDefinition*): SearchDefinition = sortBy(sorts)
 
   def sortBy(sorts: SortDefinition*): SearchDefinition = sortBy(sorts)
+
   def sortBy(sorts: Iterable[SortDefinition]): SearchDefinition = copy(sorts = sorts.toSeq)
 
   def sortByFieldAsc(name: String): SearchDefinition = sortBy(FieldSortDefinition(name))
+
   def sortByFieldDesc(name: String): SearchDefinition = sortBy(FieldSortDefinition(name).desc())
 
   /** This method introduces zero or more script field definitions into the search construction
@@ -99,6 +107,7 @@ case class SearchDefinition(indexesTypes: IndexesAndTypes,
     * @return this, an instance of [[SearchDefinition]]
     */
   def scriptfields(fields: ScriptFieldDefinition*): SearchDefinition = scriptfields(fields)
+
   def scriptfields(fields: Iterable[ScriptFieldDefinition]): SearchDefinition = {
     //    defs.foreach {
     //      case ScriptFieldDefinition(name, script, None, None, _, ScriptType.INLINE) =>
@@ -120,6 +129,7 @@ case class SearchDefinition(indexesTypes: IndexesAndTypes,
                   rest: SuggestionDefinition*): SearchDefinition = suggestions(first +: rest)
 
   def suggestions(suggs: Iterable[SuggestionDefinition]): SearchDefinition = copy(suggs = suggs.toSeq)
+
   def suggestion(sugg: SuggestionDefinition): SearchDefinition = suggestions(Seq(sugg))
 
   def globalSuggestionText(text: String): SearchDefinition = copy(globalSuggestionText = text.some)
@@ -129,6 +139,7 @@ case class SearchDefinition(indexesTypes: IndexesAndTypes,
 
   @deprecated("use regexQuery(...)", "5.0.0")
   def regex(tuple: (String, String)): SearchDefinition = regexQuery(tuple)
+
   def regexQuery(tuple: (String, String)): SearchDefinition = regexQuery(tuple._1, tuple._2)
 
   // Adds a single regex query to this search
@@ -136,10 +147,12 @@ case class SearchDefinition(indexesTypes: IndexesAndTypes,
 
   @deprecated("use termQuery()", "5.0.0")
   def term(tuple: (String, Any)): SearchDefinition = termQuery(tuple)
+
   @deprecated("use termQuery()", "5.0.0")
   def term(field: String, value: Any): SearchDefinition = termQuery(field, value)
 
   def termQuery(tuple: (String, Any)): SearchDefinition = termQuery(tuple._1, tuple._2)
+
   def termQuery(field: String, value: Any): SearchDefinition = {
     val q = TermQueryDefinition(field, value)
     query(q)
@@ -218,9 +231,11 @@ case class SearchDefinition(indexesTypes: IndexesAndTypes,
   def routing(r: String): SearchDefinition = copy(routing = r.some)
 
   def start(i: Int): SearchDefinition = from(i)
+
   def from(i: Int): SearchDefinition = copy(from = i.some)
 
   def limit(i: Int): SearchDefinition = size(i)
+
   def size(i: Int): SearchDefinition = copy(size = i.some)
 
   @deprecated("Use the elasticsearch enum rather than the elastic4s one", "5.2.0")
@@ -231,11 +246,15 @@ case class SearchDefinition(indexesTypes: IndexesAndTypes,
   def indicesOptions(options: IndicesOptions): SearchDefinition = copy(indicesOptions = options.some)
 
   def rescore(first: RescoreDefinition, rest: RescoreDefinition*): SearchDefinition = rescore(first +: rest)
+
   def rescore(rescorers: Iterable[RescoreDefinition]): SearchDefinition = copy(rescorers = rescorers.toSeq)
 
   // alias for scroll
   def keepAlive(keepAlive: String): SearchDefinition = scroll(keepAlive)
+
   def scroll(keepAlive: String): SearchDefinition = copy(keepAlive = keepAlive.some)
+
+  def slice(id: Int, max: Int): SearchDefinition = copy(slice = Some(id, max))
 
   def searchType(searchType: SearchType): SearchDefinition = copy(searchType = searchType.some)
 
@@ -251,6 +270,7 @@ case class SearchDefinition(indexesTypes: IndexesAndTypes,
   def terminateAfter(terminateAfter: Int): SearchDefinition = copy(terminateAfter = terminateAfter.some)
 
   def indexBoost(map: Map[String, Double]): SearchDefinition = indexBoost(map.toList: _*)
+
   def indexBoost(tuples: (String, Double)*): SearchDefinition = copy(indexBoosts = tuples)
 
   def timeout(duration: FiniteDuration): SearchDefinition = copy(timeout = duration.some)
@@ -262,16 +282,20 @@ case class SearchDefinition(indexesTypes: IndexesAndTypes,
   def fields(fields: String*): SearchDefinition = storedFields(fields)
 
   def storedFields(first: String, rest: String*): SearchDefinition = storedFields(first +: rest)
+
   def storedFields(fields: Iterable[String]): SearchDefinition = copy(storedFields = fields.toSeq)
 
   def fetchContext(context: FetchSourceContext): SearchDefinition = copy(fetchContext = context.some)
+
   def fetchSource(fetch: Boolean): SearchDefinition = copy(fetchContext = new FetchSourceContext(fetch).some)
 
   def sourceInclude(first: String, rest: String*): SearchDefinition = sourceFiltering(first +: rest, Nil)
-  def sourceInclude(includes: Iterable[String]) : SearchDefinition = sourceFiltering(includes, Nil)
+
+  def sourceInclude(includes: Iterable[String]): SearchDefinition = sourceFiltering(includes, Nil)
 
   def sourceExclude(first: String, rest: String*): SearchDefinition = sourceFiltering(Nil, first +: rest)
-  def sourceExclude(excludes: Iterable[String]) : SearchDefinition = sourceFiltering(Nil, excludes)
+
+  def sourceExclude(excludes: Iterable[String]): SearchDefinition = sourceFiltering(Nil, excludes)
 
   def sourceFiltering(includes: Iterable[String], excludes: Iterable[String]): SearchDefinition =
     copy(fetchContext = new FetchSourceContext(true, includes.toArray, excludes.toArray).some)
